@@ -1,5 +1,5 @@
-#define TSL1401_CLK 2 //  test pin
-#define TSL1401_SI 1 //  test pin
+#define TSL1401_CLK 3 //  test pin
+#define TSL1401_SI 4 //  test pin
 
 void read_TSL1401_camera(void)
 {
