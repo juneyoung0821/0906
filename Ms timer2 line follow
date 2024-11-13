@@ -1,16 +1,18 @@
 #include <MsTimer2.h>
 
+#define test_pin 40
+
 #define A0pin A0
 #define SIpin 23
 #define CLKpin 22
 #define NPIXELS 128
 
-#define ENA 13
+#define ENA 7
 #define IN1 11
 #define IN2 10
 #define IN3 9
 #define IN4 8
-#define ENB 12
+#define ENB 6
 
 byte Pixel[NPIXELS];
 byte Threshold_Data[NPIXELS];
@@ -31,7 +33,44 @@ float error_old = 0.0;
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 
-/////////////////////////////////////////////////
+void setup()
+{
+
+  MsTimer2::set(180, line_tracer); 
+  MsTimer2::start();
+  int i;
+  for (i = 0; i < NPIXELS; i++)
+  {
+    LineSensor_Data[i] = 0;
+    LineSensor_Data_Adaption[i] = 0;
+    MAX_LineSensor_Data[i] = 1023;
+    MIN_LineSensor_Data[i] = 0;
+  }
+  pinMode(SIpin, OUTPUT);
+  pinMode(CLKpin, OUTPUT);
+  pinMode(A0pin, INPUT);
+
+
+  digitalWrite(SIpin, LOW);
+  digitalWrite(CLKpin, LOW);
+
+#if FASTADC
+  sbi(ADCSRA, ADPS2);
+  cbi(ADCSRA, ADPS1);
+  cbi(ADCSRA, ADPS0);
+#endif
+
+  flag_line_adapation = 0;
+
+  pinMode(test_pin, OUTPUT);
+  
+  Serial.begin(115200);
+  //Serial.println("TSL1401");
+  
+
+}
+
+////////////////////////////////////////////////////
 
 void motor_l(int speed)
 {
@@ -75,6 +114,8 @@ void motor_control(int left_motor_speed, int right_motor_speed)
 
 void threshold_line_image(int threshold_value)
 {
+  digitalWrite(test_pin, HIGH);
+  Serial.println("HIGH");
   for (int i = 0; i < NPIXELS; i++)
   {
     if (Pixel[i] >= threshold_value)
@@ -86,11 +127,15 @@ void threshold_line_image(int threshold_value)
       Threshold_Data[i] = 0;
     }
   }
+  digitalWrite(test_pin, LOW);
+  Serial.println("LOW");
 }
 
 void line_control(int line_center)
-
 {
+ 
+  digitalWrite(test_pin, HIGH);
+  
   int error = line_center - IMG_WIDTH_HALF;
   int derivative = error - error_old;
   float output = KP * error + KD * derivative;
@@ -107,10 +152,13 @@ void line_control(int line_center)
   motor_control(left_speed, right_speed);
 
   error_old = error;
+  digitalWrite(test_pin, LOW);
 }
 
 void read_line_camera(void)
 {
+  digitalWrite(test_pin, HIGH);
+  Serial.println("HIGH");
   int i;
   delay(1);
 
@@ -128,10 +176,14 @@ void read_line_camera(void)
     digitalWrite(CLKpin, HIGH);
   }
   digitalWrite(CLKpin, LOW);
+  digitalWrite(test_pin, LOW);
+  Serial.println("LOW");
 }
 
 double line_COM(void)
 {
+  digitalWrite(test_pin, HIGH);
+  //Serial.println("HIGH");
   double COM = 0.0;
   double mass_sum = 0.0;
 
@@ -148,68 +200,21 @@ double line_COM(void)
 
   COM = COM / mass_sum;
 
+  digitalWrite(test_pin, LOW);
   return COM;
 }
 
-////////////////////////////////////////////////////
 
-void line_tracing() {
-  int line_center = 64;
-  double cx = 0;
-
-  read_line_camera();
-  threshold_line_image(150);
-  cx = line_COM();
-
-  line_center  = line_COM();
-  line_control(line_center);
-
-  for (int i = 0; i < NPIXELS; i++) {
-    Serial.print(Pixel[i]);
-    Serial.print(",");
-    Serial.print(Threshold_Data[i]);
-    Serial.print(",");
-    Serial.print((i == (int)cx) ? 255 : 0);
-    Serial.println();
-  }
-
-  delay(50); 
-  
-  void setup() {
-  int i;
-  for (i = 0; i < NPIXELS; i++) {
-    LineSensor_Data[i] = 0;
-    LineSensor_Data_Adaption[i] = 0;
-    MAX_LineSensor_Data[i] = 1023;
-    MIN_LineSensor_Data[i] = 0;
-  }
-
-  pinMode(SIpin, OUTPUT);
-  pinMode(CLKpin, OUTPUT);
-  pinMode(A0pin, INPUT);
-
-  pinMode(IN1, OUTPUT);
-  pinMode(IN2, OUTPUT);
-  pinMode(IN3, OUTPUT);
-  pinMode(IN4, OUTPUT);
-  pinMode(ENA, OUTPUT);
-  pinMode(ENB, OUTPUT);
-
-  digitalWrite(SIpin, LOW);
-  digitalWrite(CLKpin, LOW);
-
-#if FASTADC
-  sbi(ADCSRA, ADPS2);
-  cbi(ADCSRA, ADPS1);
-  cbi(ADCSRA, ADPS0);
-#endif
-
-  flag_line_adapation = 0;
-  Serial.begin(115200);
-  Serial.println("TSL1401");
-
-  MsTimer2::set(60, line_tracing); // 60ms마다 line_tracing 함수 호출
-  MsTimer2::start();
+void line_tracer()
+{
+  double cx = 64;
+  read_line_camera(); 
+  threshold_line_image(180); 
+  cx = line_COM(); 
+  line_control(cx); 
 }
 
-void loop() {}
+void loop()
+{
+  line_tracer();
+}
