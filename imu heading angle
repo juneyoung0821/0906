@@ -126,7 +126,7 @@ void loop()
         motor_control(50,50);*/
       compass.read();
       heading_angle = compass.heading();
-      target_angle = 100 + compass.heading();
+      target_angle = 60 + compass.heading();
       error_yaw = target_angle - heading_angle;
       mission_flag = 1;
       break;
