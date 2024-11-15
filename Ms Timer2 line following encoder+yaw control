@@ -1,14 +1,14 @@
 #define A0pin A0
-#define SIpin 23
-#define CLKpin 22
+#define SIpin 25
+#define CLKpin 26
 #define NPIXELS 128
 
-#define ENA 12
-#define IN1 8
-#define IN2 9
-#define IN3 10
-#define IN4 11
-#define ENB 13
+#define ENA 21
+#define IN1 20
+#define IN2 19
+#define IN3 18
+#define IN4 17
+#define ENB 16
 
 #define base_speed 90
 
